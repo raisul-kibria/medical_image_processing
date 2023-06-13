@@ -1,0 +1,38 @@
+Function evaluations 49, initial cost 5.1832e-04, final cost 4.4489e-04, first-order optimality 1.26e-04.
+[ -5.14178794   4.54777266  -1.66039817 180.8684099    0.92519374
+   0.23853952   0.31502524   0.9          0.95         0.975     ]
+Iter 2:
+skip count: 0
+(212, 259, 259)
+(181, 217, 181)
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
+       0              1         1.9987e-03                                    1.59e+00
+       1              2         1.9980e-03      7.19e-07       3.76e-02       4.39e-04    
+       2              3         1.9935e-03      4.49e-06       5.28e-03       8.55e-04    
+       3              4         1.9816e-03      1.19e-05       5.94e-03       3.72e-04    
+       4              5         1.9807e-03      9.03e-07       6.02e-02       9.81e-04    
+       5              6         1.9769e-03      3.79e-06       1.82e-01       1.30e-03    
+       6             10         1.9769e-03      8.09e-08       6.19e-03       1.29e-03    
+       7             12         1.9768e-03      4.03e-08       3.08e-03       1.28e-03    
+       8             14         1.9768e-03      2.01e-08       1.54e-03       1.27e-03    
+       9             17         1.9768e-03      2.51e-09       1.92e-04       1.27e-03    
+      10             19         1.9768e-03      1.26e-09       9.59e-05       1.27e-03    
+      11             22         1.9768e-03      1.57e-10       1.20e-05       1.27e-03    
+      12             24         1.9768e-03      7.85e-11       5.99e-06       1.27e-03    
+      13             25         1.9768e-03      1.57e-10       1.20e-05       1.27e-03    
+      14             28         1.9768e-03      1.96e-11       1.50e-06       1.27e-03    
+Both `ftol` and `xtol` termination conditions are satisfied.
+Function evaluations 28, initial cost 1.9987e-03, final cost 1.9768e-03, first-order optimality 1.27e-03.
+[-5.10347310e+00  4.90641158e+00 -2.01109179e+00  1.80210520e+02
+  9.99988819e-01  9.69120554e-11  6.81191108e-03  9.00000000e-01
+  9.50000000e-01  9.75000000e-01]
+
+
+Report:
+          Cost: 0.0019767854707681983
+            Fun: [0.06287743]
+                Optimality: 0.0012734808427562888
+                    Active mask: [ 0  0  0  0  0 -1  0 -1  0  0]
+                            nfev: 28
+                                    Status: 4
+                                    Message: Both `ftol` and `xtol` termination conditions are satisfied.
