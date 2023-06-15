@@ -13,8 +13,8 @@ from scipy.ndimage import zoom, rotate, shift
 
 
 def get_thalamus_mask(img_atlas: np.ndarray) -> np.ndarray:
-    # Your code here:
-    #   ...
+    """ finds all the regions that correspond to the thalamus and applies some postprocessing
+    to remove noise. """
     thalamus_mask = np.zeros_like(img_atlas)
     thalamus_mask[img_atlas>=121] = 1
     thalamus_mask[img_atlas>150] = 0
@@ -26,9 +26,7 @@ def get_thalamus_mask(img_atlas: np.ndarray) -> np.ndarray:
 
 
 def find_centroid(mask: np.ndarray) -> np.ndarray:
-    # Your code here:
-    #   Consider using `np.where` to find the indices of the voxels in the mask
-    #   ...
+    """ finds the centroid of a volume for visualization. """
     idcs = np.where(mask == 1)
     centroid = np.stack([
         np.mean(idcs[0]),
@@ -46,10 +44,6 @@ def visualize_axial_slice(
         pixel_len_mm: List
         ):
     """ Visualize the axial slice (firs dim.) of a single region with alpha fusion. """
-    # Your code here
-    #   Remember `matplotlib.colormaps['cmap_name'](...)`
-    #   See also `matplotlib.colors.Normalize(vmin=..., vmax=...)`
-    #   ...
     img_slice = img[mask_centroid[0].astype(np.int32), :, :]
     mask_slice = mask[mask_centroid[0].astype(np.int32), :, :]
 
@@ -68,11 +62,7 @@ def visualize_coronal_slice(
         mask_centroid: np.ndarray,
         pixel_len_mm: List
         ):
-    """ Visualize the axial slice (firs dim.) of a single region with alpha fusion. """
-    # Your code here
-    #   Remember `matplotlib.colormaps['cmap_name'](...)`
-    #   See also `matplotlib.colors.Normalize(vmin=..., vmax=...)`
-    #   ...
+    """ Visualize the coronal slice (second dim.) of a single region with alpha fusion. """
     img_slice = img[:, mask_centroid[1].astype(np.int32), :]
     mask_slice = mask[:, mask_centroid[1].astype(np.int32), :]
 
@@ -92,7 +82,7 @@ def visualize_sagittal_slice(
         mask_centroid: np.ndarray,
         pixel_len_mm: List
         ):
-    """ Visualize the axial slice (last dim.) of a single region with alpha fusion. """
+    """ Visualize the sagittal slice (last dim.) of a single region with alpha fusion. """
     img_slice = img[:,:,mask_centroid[2].astype(np.int32)]
     mask_slice = mask[:,:,mask_centroid[2].astype(np.int32)]
 
@@ -127,9 +117,12 @@ def rigid_transformation(volume: np.ndarray, parameters: tuple[float, ...], ref_
 def inverse_rigid_transformation(volume: np.ndarray, parameters: tuple[float, ...], ref_volume: np.ndarray , angle_in_rads: int = 360):
     """ Apply the inverse transformation to input volume by inferring from defined `parameters`. """
     t1, t2, t3, v1, v2, v3, s1, s2, s3 = parameters
+
+    # Scale to original values
     t1, t2, t3 = np.array([t1, t2, t3])*40 - 20
     s1, s2, s3 = np.array([s1, s2, s3])*0.1 + 0.9
 
+    # inverse of the transform
     t_volume = rotate(volume, -(angle_in_rads * v3), (0, 1))
     t_volume = rotate(t_volume, -(angle_in_rads * v1), (1, 2))
     t_volume = rotate(t_volume, -(angle_in_rads * v2), (2, 0))
@@ -199,11 +192,10 @@ def coregister_landmarks(ref_landmarks: np.ndarray, inp_landmarks: np.ndarray):
 
 def find_region_volume(region_mask):
     """ Returns the volume of the region in mm^3. """
-    # Your code here:
-    #   ...
     return np.sum(region_mask)
 
 def min_max_normalize(vol: np.ndarray):
+    """ normalizes the input volume to range [0, 1]. """
     amin = np.amin(vol)
     amax = np.amax(vol)
     norm_vol = (vol - amin) / (amax - amin)
@@ -211,9 +203,6 @@ def min_max_normalize(vol: np.ndarray):
 
 def find_region_surface(mask):
     """ Returns the surface of the region in mm^2. """
-    # Your code here:
-    #   See `skimage.morphology.binary_erosion()` and `skimage.morphology.binary_dilation()`
-    #   ...
     inner_surface = mask - binary_erosion(mask, np.ones((3, 3, 3)))
     outer_surface = binary_dilation(mask, np.ones((3, 3, 3))) - mask
     return (np.sum(inner_surface) + np.sum(outer_surface) ) / 2     # Average of inner and outer surface
@@ -225,19 +214,21 @@ def main():
     tgt_dir = 'data/Coregistration/RM_Brain_3D-SPGR/'
     dcm_phantom = pydicom.dcmread(phantom_dir)
     img_phantom = dcm_phantom.pixel_array
-    print('P', img_phantom.shape)
-    img_phantom = img_phantom[6:-6, 6:-6, 6:-6]     # Crop phantom to atlas size
-    
-    # dcm_atlas = pydicom.dcmread(os.path.join(data_dir, os.listdir(data_dir)[0]))
+    # print('P', img_phantom.shape)
+
+    # Crop phantom to atlas size
+    img_phantom = img_phantom[6:-6, 6:-6, 6:-6]     
+
     dcm_atlas = pydicom.dcmread(atlas_dir)
     img_atlas = dcm_atlas.pixel_array
-    print("A", img_atlas.shape)
+    #print("A", img_atlas.shape)
 
     # fig, axs = plt.subplots(1, 2)
     # axs[0].imshow(img_phantom[len(img_phantom) // 2, :, :], cmap='bone')
     # axs[1].imshow(img_atlas[len(img_phantom) // 2, :, :], cmap='tab20')
     # plt.show()
     # return
+
     assert img_phantom.shape == img_atlas.shape
     count = 0
     order_array = []
@@ -262,17 +253,12 @@ def main():
     scan_3d_pspace = np.array([x.pixel_array for x in dcm_slices])
     scan_3d = np.array([cv2.resize(x.pixel_array, [dim1, dim2]) for x in dcm_slices])
     scan_3d = min_max_normalize(scan_3d)
+    # Now the set parameters are the optimal ones.
     parameters = [2.51809783e-01, 5.00640507e-01, 4.27904346e-01, 4.83209821e-01, 8.26430720e-05, 1.14487524e-02, 6.00000000e-01, 1.00000000e+00,  9.00000000e-01]
-    # parameters =    [
-    #     0.25, 0.5, 0.4285,  # Translation vector, without scaling range [-20, 20]
-    #     0.4875, 0, 0.005,   # Axis of rotation, without scaling range   [0, 360]
-    #     0.6, 1, .9          # Scaling parameters, without scaling range [0.9, 1]
-    # ]
-    #
-    # [-5.10347310e+00,  4.90641158e+00, -2.01109179e+00,  1.80210520e+02,9.99988819e-01,  9.69120554e-11,  6.81191108e-03,  9.00000000e-01,  9.50000000e-01, 9.75000000e-01]
-    # # [-5, 5, -2, 180, 1, 0, 0, 0.9, 0.95, 0.975]
-    # # [-5.14178794, 4.54777266, -1.66039817, 180.8684099, 0.92519374, 0.23853952, 0.31502524, 0.9, 0.95, 0.975]
-    # # 
+    # below are the initial ones. 
+    # parameters =    [0.25, 0.5, 0.4285, 0.4875, 0, 0.005, 0.6, 1, .9]
+
+    #### VISUALIZE PHANTOM IN DIFFERENT PLANES ####
     # scan_3d = rigid_transformation(scan_3d, parameters, img_phantom)
     # scan_3d_pspace = img_phantom
     # img_atlas_pspace = img_atlas
@@ -290,6 +276,7 @@ def main():
     # plt.show()
     # return
 
+    #### VERIFYING CENTER OF INVERSE TRANSFORMED AXIAL PLANE. ####
     # plt.subplot(121)
     # plt.imshow(scan_3d[len(img_phantom) // 2,:,:], cmap='bone')
     # plt.subplot(122)
@@ -298,6 +285,7 @@ def main():
     # plt.show()
     # return
 
+    # Rescale atlas from reference space to input space volume.
     dimp1 = int(img_atlas.shape[2] * (1 / zoom_factor))
     dimp2 = int(img_atlas.shape[1] * (1 / zoom_factor))
     img_atlas_pspace = np.array([zoom(x, (1 / zoom_factor)) for x in img_atlas])
@@ -305,13 +293,13 @@ def main():
     img_atlas_pspace = img_atlas_pspace[4:-4,:,:]
     print('PSPACE:',img_atlas_pspace.shape)
     print('PSPACE:',scan_3d_pspace.shape)
+
+    # Apply inverse rigid transform for optimized parameters
     img_atlas_pspace = inverse_rigid_transformation(img_atlas_pspace, parameters, scan_3d_pspace)
     # print(vector_of_residuals(scan_3d, img_phantom))
 
 
-    # print(scan_3d.shape)
-    # print(img_phantom.shape)
-    # Coregister landmarks
+    #### Coregister landmarks ####
     # result = coregister_landmarks(img_phantom, scan_3d)
     # solution_found = result.x
     # print(solution_found)
@@ -326,6 +314,7 @@ def main():
     #                                 Message: {result.message}')
 
 
+    ### VISUALIZE INVERSE RIGID TRANSFORMATION RESULTS IN INPUT SPACE. ####
     # print(scan_3d_pspace.shape)
     # print(img_atlas_pspace.shape)
     # plt.subplot(121)
@@ -349,6 +338,7 @@ def main():
     # plt.title("sagittal plane")
     # plt.show()
 
+    ### DISPLAY INITIALLY LOADED DATA FOR VERIFICATION. ###
     # for i in range(10):
     #     j=i*5
     #     fig, axs = plt.subplots(1, 2)
@@ -357,18 +347,21 @@ def main():
     #     fig.show()
     #     plt.show()
 
+    ### DISPLAY PHANTOM AND ATLAS ###
     # fig, axs = plt.subplots(1, 2)
     # axs[0].imshow(img_phantom[50, :, :], cmap='bone')
     # axs[1].imshow(img_atlas[50, :, :], cmap='tab20')
     # fig.show()
     # plt.show()
 
+    ### VISUALIZE THALAMUS IN THE CENTORID OF EACH PLANE AFTER INVERSE. ### 
     thalamus_mask = get_thalamus_mask(img_atlas_pspace)
     # mask_centroid = find_centroid(thalamus_mask) #np.array([40.0, 150.0, 100.0]) 
     # visualize_axial_slice(scan_3d_pspace, thalamus_mask, mask_centroid, pixel_len_mm)
     # visualize_coronal_slice(scan_3d_pspace, thalamus_mask, mask_centroid, pixel_len_mm)
     # visualize_sagittal_slice(scan_3d_pspace, thalamus_mask, mask_centroid, pixel_len_mm)
 
+    ### VISUALIZE THALAMUS IN THE CENTORID OF EACH PLANE WITHOUT INVERSE. ###
     # scan_3d = rigid_transformation(scan_3d, parameters, img_atlas)
     # scan_3d = img_phantom
     # thalamus_mask = get_thalamus_mask(img_atlas)
@@ -378,16 +371,15 @@ def main():
     # visualize_sagittal_slice(scan_3d, thalamus_mask, mask_centroid, [1,1,1])
     # visualize_axial_slice(img_phantom, img_atlas, mask_centroid)
 
-    vol = find_region_volume(thalamus_mask)
-    surf = find_region_surface(thalamus_mask)
+    ### FINDS THE VOLUME OF REGION. ###
+    #     vol = find_region_volume(thalamus_mask)
+    #     surf = find_region_surface(thalamus_mask)
 
-    print('thalamus volume:')
-    print(f'  >> Result: {vol} mm^3')
-    print(f'  >> Expected: 3744 mm^3')
+    #     print('thalamus volume:')
+    #     print(f'  >> Result: {vol} mm^3')
 
-    print('thalamus surface:')
-    print(f'  >> Result: {surf} mm^2')
-    print(f'  >> Expected: 1849-6920 mm^2 (depending on the approximation)')
+    #     print('thalamus surface:')
+    #     print(f'  >> Result: {surf} mm^2')
 
 if __name__ == '__main__':
     main()
