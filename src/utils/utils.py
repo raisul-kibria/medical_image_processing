@@ -15,65 +15,6 @@ def apply_cmap(img: np.ndarray, cmap_name: str = 'bone') -> np.ndarray:
     cmap_function = matplotlib.colormaps[cmap_name]
     return cmap_function(img)
 
-def translation(
-        point: tuple[float, float, float],
-        translation_vector: tuple[float, float, float]
-        ) -> tuple[float, float, float]:
-    """ Perform translation of `point` by `translation_vector`. """
-    x, y, z = point
-    v1, v2, v3 = translation_vector
-    # Your code here
-    # ...
-    return (x+v1, y+v2, z+v3)
-
-def multiply_quaternions(
-        q1: tuple[float, float, float, float],
-        q2: tuple[float, float, float, float]
-        ) -> tuple[float, float, float, float]:
-    """ Multiply two quaternions, expressed as (1, i, j, k). """
-    # Your code here:
-    #   ...
-    return (
-        q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3],
-        q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2],
-        q1[0] * q2[2] - q1[1] * q2[3] + q1[2] * q2[0] + q1[3] * q2[1],
-        q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1] + q1[3] * q2[0]
-    )
-
-
-def conjugate_quaternion(
-        q: tuple[float, float, float, float]
-        ) -> tuple[float, float, float, float]:
-    """ Multiply two quaternions, expressed as (1, i, j, k). """
-    # Your code here:
-    #   ...
-    return (
-        q[0], -q[1], -q[2], -q[3]
-    )
-
-def axial_rotation(
-        point: tuple[float, float, float],
-        angle_in_rads: float,
-        axis_of_rotation: tuple[float, float, float]) -> tuple[float, float, float]:
-    """ Perform axial rotation of `point` around `axis_of_rotation` by `angle_in_rads`. """
-    x, y, z = point
-    v1, v2, v3 = axis_of_rotation
-    # Normalize axis of rotation to avoid restrictions on optimizer
-    v_norm = math.sqrt(sum([coord ** 2 for coord in [v1, v2, v3]]))
-    v1, v2, v3 = v1 / v_norm, v2 / v_norm, v3 / v_norm
-    # Your code here:
-    #   ...
-    #   Quaternion associated to point.
-    p = (0, x, y, z)
-    #   Quaternion associated to axial rotation.
-    cos, sin = math.cos(angle_in_rads / 2), math.sin(angle_in_rads / 2)
-    q = (cos, sin * v1, sin * v2, sin * v3)
-    #   Quaternion associated to image point
-    q_star = conjugate_quaternion(q)
-    p_prime = multiply_quaternions(q, multiply_quaternions(p, q_star))
-    #   Interpret as 3D point (i.e. drop first coordinate)
-    return p_prime[1], p_prime[2], p_prime[3]
-
 def center_crop(vol, dim):
     """Returns center cropped volume.
     Args:
@@ -112,8 +53,6 @@ def center_pad(vol, dim):
     # Calculate the padding required for each dimension
     mid_x, mid_y, mid_z = int(pad_x/2), int(pad_y/2), int(pad_z/2)
     px, py, pz = int(X/2), int(Y/2), int(Z/2)
-    
-    
 
     print(f'DEBUG: {mid_x}-{mid_y}-{mid_z} AND {px}-{py}-{pz}')
     # Create a new black canvas with the larger dimensions (grayscale mode)
@@ -123,20 +62,9 @@ def center_pad(vol, dim):
     larger_vol[mid_x-px:mid_x+px+1, mid_y-py:mid_y+py+1, mid_z-pz:mid_z+pz] = vol
     return larger_vol
 
-def pad_center(input_img, larger_height, larger_width):
-    # Calculate the padding required for each dimension
-    padding_width = (larger_width - input_img.shape[1]) // 2
-    padding_height = (larger_height - input_img.shape[0]) // 2
 
-    # Create a new black canvas with the larger dimensions (grayscale mode)
-    larger_image = np.zeros((larger_height, larger_width), dtype=np.uint8)
-
-    # Paste the smaller image onto the larger image
-    larger_image[padding_height : padding_height + input_img.shape[0], padding_width : padding_width + input_img.shape[1]] = input_img
-    return larger_image
 
 def cv2_clipped_zoom(img, zoom_factor=0):
-
     """
     Center zoom in/out of the given image and returning an enlarged/shrinked view of 
     the image without changing dimensions
@@ -153,7 +81,6 @@ def cv2_clipped_zoom(img, zoom_factor=0):
     """
     if zoom_factor == 0:
         return img
-
 
     height, width = img.shape[:2] # It's also the final desired shape
     new_height, new_width = int(height * zoom_factor), int(width * zoom_factor)
@@ -173,7 +100,7 @@ def cv2_clipped_zoom(img, zoom_factor=0):
     pad_height1, pad_width1 = (height - resize_height) // 2, (width - resize_width) //2
     pad_height2, pad_width2 = (height - resize_height) - pad_height1, (width - resize_width) - pad_width1
     pad_spec = [(pad_height1, pad_height2), (pad_width1, pad_width2)] + [(0,0)] * (img.ndim - 2)
-    
+
     result = cv2.resize(cropped_img, (resize_width, resize_height))
     result = np.pad(result, pad_spec, mode='constant')
     assert result.shape[0] == height and result.shape[1] == width
